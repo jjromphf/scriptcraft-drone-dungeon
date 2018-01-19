@@ -22,23 +22,32 @@ BSPTree.prototype.getLeaves = function() {
   return [].concat(this.leftChild.getLeaves(), this.rightChild.getLeaves());
 }
 
+BSPTree.prototype.getNodes = function() {
+  if (this.leftChild && this.rightChild) {
+    return this;
+  } else {
+    return [].concat(this.leftChild.getNodes(), this.rightChild.getNodes());
+  }
+}
+
 BSPTree.prototype.getChildLevel = function(child, level, queue) {
   if (child !== undefined && queue !== undefined) {
-    child.getLevel(level, queue);
+    return child.getLevel(level, queue);
   }
 }
 
 BSPTree.prototype.getLevel = function(level, queue) {
   if (queue === undefined) {
     queue = [];
-    // the root
-    if (level === 1) {
-      queue.push(this);
-    }
-  } else {
-    this.getChildLevel(this.leftChild, level, queue);
-    this.getChildLevel(this.rightChild, level, queue);
   }
+    // the root
+  if (level === 1) {
+    queue.push(this);
+  } else {
+    this.getChildLevel(this.leftChild, level-1, queue);
+    this.getChildLevel(this.rightChild, level-1, queue);
+  }
+  return queue;
 }
 
 // satic methods

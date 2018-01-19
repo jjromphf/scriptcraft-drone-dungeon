@@ -11,7 +11,7 @@ var Room = function(rect) {
   this.h = rect.h - (this.y - rect.y);
   this.w -= randomInt(0, this.w/3);
   this.h -= randomInt(0, this.h/3);
-  this.container = rect;
+  this.pathTo
   return this;
 }
 
@@ -28,8 +28,10 @@ var DungeonLayout = function(width, height, nIterations) {
 }
 
 DungeonLayout.prototype._makeRooms = function() {
-  this.rooms = this.tree.getLeaves().map(function(leaf) {
-    return new Room(leaf);
+  this.rooms = this.tree.getLeaves().map(function(leaf, index) {
+    var room = new Room(leaf);
+
+    return room;
   });
 }
 

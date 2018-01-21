@@ -3,15 +3,18 @@ var randomInt = require('./utils').randomInt;
 
 var Rectangle = geom.Rectangle;
 var Vector2 = geom.Vector2;
+var Path = geom.Path;
 
 var BSPTree = function(leaf) {
   this.leaf = leaf;
   this.leftChild;
   this.rightChild;
+  // need to cache this
+  this.levels = null;
 }
 
 // class constants
-BSPTree.MIN_ASPECT = 0.45;
+BSPTree.MIN_ASPECT = 0.5;
 BSPTree.SPLIT_H = 0;
 BSPTree.SPLIT_V = 1;
 
@@ -22,11 +25,57 @@ BSPTree.prototype.getLeaves = function() {
   return [].concat(this.leftChild.getLeaves(), this.rightChild.getLeaves());
 }
 
-BSPTree.prototype.getNodes = function() {
-  if (this.leftChild && this.rightChild) {
-    return this;
+// https://stackoverflow.com/questions/2597637/finding-height-in-binary-search-tree
+
+BSPTree.prototype._height = function(node) {
+  if (!node) {
+    return -1;
+  }
+  var leftH = this._height(node.leftChild);
+  var rightH = this._height(node.rightChild);
+  if (leftH > rightH) {
+    return leftH + 1;
   } else {
-    return [].concat(this.leftChild.getNodes(), this.rightChild.getNodes());
+    return rightH + 1;
+  }
+}
+
+BSPTree.prototype.getLevels = function() {
+  if (!this.levels) {
+    this.levels = this._height(this);
+  }
+  return this.levels;
+}
+
+BSPTree.prototype._nearest = function(leftChild, rightChild, point) {
+
+  if (rightChild === undefined) {
+    return false;
+  }
+
+  if (leftChild === undefined) {
+    return false;
+  }
+
+  if (leftChild.leaf.containsPoint(point)) {
+    return leftChild.leaf;
+  }
+
+  if (rightChild.leaf.containsPoint(point)) {
+    return rightChild.leaf;
+  }
+
+  return this._nearest(leftChild.leftChild, rightChild.rightChild, point);
+}
+
+BSPTree.prototype.nearestLeaf = function(point) {
+  for (var i = this.getLevels(); i > 0; i-- ) {
+    var level = this.getLevel(i);
+    for (var j = 0; j < level.length; j++) {
+      var node = level[j];
+      if (node.rightChild.leaf.containsPoint(point)) return node.rightChild.leaf;
+      if (node.leftChild.leaf.containsPoint(point)) return node.leftChild.leaf;
+    }
   }
 }
 
@@ -81,6 +130,9 @@ BSPTree.doSplit = function(rect, splitDirection) {
       rect.x + rect1.w, rect.y,
       rect.w - rect1.w, rect.h
     );
+    if (rect1.v_aspect < BSPTree.MIN_ASPECT || rect2.v_aspect < BSPTree.MIN_ASPECT) {
+      return BSPTree.splitRandom(rect);
+    }
   } else {
     rect1 = new Rectangle(
       rect.x, rect.y,
@@ -91,11 +143,12 @@ BSPTree.doSplit = function(rect, splitDirection) {
       rect.x, rect.y + rect1.h,
       rect.w, rect.h - rect1.h
     );
+    if (rect1.h_aspect < BSPTree.MIN_ASPECT || rect2.h_aspect < BSPTree.MIN_ASPECT) {
+      return BSPTree.splitRandom(rect);
+    }
   }
 
-  if (rect1.aspect < BSPTree.MIN_ASPECT || rect2.aspect < BSPTree.MIN_ASPECT) {
-    return BSPTree.splitRandom(rect);
-  }
+
   return [rect1, rect2];
 }
 

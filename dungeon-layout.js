@@ -1,6 +1,9 @@
 var randomInt = require('./utils').randomInt;
-var Rectangle = require('./geom').Rectangle;
+var geom = require('./geom');
 var BSPTree = require('./bsp').BSPTree;
+
+var Rectangle = geom.Rectangle;
+var Vector2 = geom.Vector2;
 
 // rooms are 1 / 3 the size of containing rectangle
 
@@ -11,7 +14,10 @@ var Room = function(rect) {
   this.h = rect.h - (this.y - rect.y);
   this.w -= randomInt(0, this.w/3);
   this.h -= randomInt(0, this.h/3);
-  this.pathTo
+  this.centroid = new Vector2(
+    this.x + (this.w / 2),
+    this.y + (this.h / 2)
+  );
   return this;
 }
 
@@ -23,20 +29,13 @@ var DungeonLayout = function(width, height, nIterations) {
   var map = new Rectangle(0, 0, width, height);
   this.tree = BSPTree.splitRect(map, this.nIterations);
   this.rooms = [];
-  this.paths = [];
   this._makeRooms();
 }
 
 DungeonLayout.prototype._makeRooms = function() {
-  this.rooms = this.tree.getLeaves().map(function(leaf, index) {
-    var room = new Room(leaf);
-
-    return room;
+  this.rooms = this.tree.getLeaves().map(function(leaf) {
+    return new Room(leaf);
   });
-}
-
-DungeonLayout.prototype._makePaths = function() {
-
 }
 
 DungeonLayout.prototype.regenerate = function(width, height, nIterations) {

@@ -1,14 +1,23 @@
 var geom = require('./geom');
 var randomInt = require('./utils').randomInt;
+var shortid = require('shortid');
 
 var Rectangle = geom.Rectangle;
 var Vector2 = geom.Vector2;
 var Path = geom.Path;
 
+var Container = function(x, y, w, h) {
+  Rectangle.call(this, x, y, w, h);
+  this.id = shortid.generate();
+}
+
+Container.prototype = Object.create(Rectangle.prototype);
+
 var BSPTree = function(leaf) {
   this.leaf = leaf;
   this.leftChild;
   this.rightChild;
+  this.leaves = [];
   // need to cache this
   this.levels = null;
 }
@@ -19,10 +28,14 @@ BSPTree.SPLIT_H = 0;
 BSPTree.SPLIT_V = 1;
 
 BSPTree.prototype.getLeaves = function() {
-  if (this.leftChild === undefined && this.rightChild === undefined) {
-    return this.leaf;
+  if (this.leaves.length === 0) {
+    if (this.leftChild === undefined && this.rightChild === undefined) {
+      return this.leaf;
+    }
+    return this.leaves.concat(this.leftChild.getLeaves(), this.rightChild.getLeaves());
+  } else {
+    return this.leaves;
   }
-  return [].concat(this.leftChild.getLeaves(), this.rightChild.getLeaves());
 }
 
 // https://stackoverflow.com/questions/2597637/finding-height-in-binary-search-tree
@@ -47,36 +60,30 @@ BSPTree.prototype.getLevels = function() {
   return this.levels;
 }
 
-BSPTree.prototype._nearest = function(leftChild, rightChild, point) {
-
-  if (rightChild === undefined) {
-    return false;
+BSPTree.prototype._nearest = function(node, point) {
+  if (node.leftChild === undefined && node.rightChild === undefined) {
+    return node.leaf;
   }
 
-  if (leftChild === undefined) {
-    return false;
+  if (node.leftChild.leaf.containsPoint(point)) {
+    return this._nearest(node.leftChild, point);
   }
 
-  if (leftChild.leaf.containsPoint(point)) {
-    return leftChild.leaf;
+  if (node.rightChild.leaf.containsPoint(point)) {
+    return this._nearest(node.rightChild, point);
   }
+}
 
-  if (rightChild.leaf.containsPoint(point)) {
-    return rightChild.leaf;
-  }
-
-  return this._nearest(leftChild.leftChild, rightChild.rightChild, point);
+// should cache result of getLeaves
+// also don't know if there's any way to do this
+BSPTree.prototype.getLeaf = function(id) {
+  return this.getLeaves().find(function(leaf) {
+    return leaf.id === id;
+  })
 }
 
 BSPTree.prototype.nearestLeaf = function(point) {
-  for (var i = this.getLevels(); i > 0; i-- ) {
-    var level = this.getLevel(i);
-    for (var j = 0; j < level.length; j++) {
-      var node = level[j];
-      if (node.rightChild.leaf.containsPoint(point)) return node.rightChild.leaf;
-      if (node.leftChild.leaf.containsPoint(point)) return node.leftChild.leaf;
-    }
-  }
+  return this._nearest(this, point);
 }
 
 BSPTree.prototype.getChildLevel = function(child, level, queue) {
@@ -121,12 +128,12 @@ BSPTree.splitRandom = function(rect) {
 BSPTree.doSplit = function(rect, splitDirection) {
   var rect1, rect2;
   if (splitDirection === BSPTree.SPLIT_V) {
-    rect1 = new Rectangle(
+    rect1 = new Container(
       rect.x, rect.y,
       randomInt(1, rect.w), rect.h
     );
 
-    rect2 = new Rectangle(
+    rect2 = new Container(
       rect.x + rect1.w, rect.y,
       rect.w - rect1.w, rect.h
     );
@@ -134,12 +141,12 @@ BSPTree.doSplit = function(rect, splitDirection) {
       return BSPTree.splitRandom(rect);
     }
   } else {
-    rect1 = new Rectangle(
+    rect1 = new Container(
       rect.x, rect.y,
       rect.w, randomInt(1, rect.h)
     );
 
-    rect2 = new Rectangle(
+    rect2 = new Container(
       rect.x, rect.y + rect1.h,
       rect.w, rect.h - rect1.h
     );

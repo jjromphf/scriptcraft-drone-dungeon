@@ -71,6 +71,13 @@ var Rectangle = function(x, y, w, h) {
   // area calculations and other stuff goes here
 }
 
+Rectangle.SIDES = {
+  TOP: 'top',
+  BOTTOM: 'bottom',
+  LEFT: 'left',
+  RIGHT: 'right',
+}
+
 Rectangle.prototype.containsPoint = function(point) {
   return (
     this.x <= point.x &&

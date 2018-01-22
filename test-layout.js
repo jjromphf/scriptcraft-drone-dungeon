@@ -21,16 +21,13 @@ dl.tree.getLeaves().forEach((leaf) => {
 dl.rooms.forEach((room) => {
   ctx.fillStyle = "#fff";
   ctx.fillRect(room.x, room.y, room.w, room.h);
+  ctx.fillStyle = "#000";
+  room.doors.forEach((door) => {
+    ctx.fillRect(door.x, door.y, 5, 5);
+  });
 });
 
-dl.rooms.forEach((room, index) => {
-  var color = '#ccc';
-  ctx.fillStyle = color;
-  ctx.fillRect(room.x, room.y, room.w, room.h);
-});
-
-let testRec = dl.tree.nearestLeaf(new Vector2(400, 100));
-console.log(testRec);
+let testRec = dl.tree.nearestLeaf(new Vector2(250, 250));
 ctx.strokeStyle = "red";
 ctx.lineWidth = 2;
 ctx.strokeRect(testRec.x, testRec.y, testRec.w, testRec.h);

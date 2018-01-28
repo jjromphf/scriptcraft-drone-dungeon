@@ -25,40 +25,76 @@ var Room = function(x, y, w, h, containerId) {
 
 Room.prototype = Object.create(Rectangle.prototype);
 
+Room.sides = function() {
+  var sides = [];
+  for (var key in Rectangle.SIDES) {
+    sides.push(Rectangle.SIDES[key]);
+  }
+  return sides;
+}
+
 // could put in a minimum door distance if they fall too close together
 Room.prototype.makeDoors = function(nDoors) {
+  var pos;
   for (i = 0; i < nDoors; i++) {
-    var side = Object.values(Rectangle.SIDES)[randomInt(0, 3)];
+    var side;
+    var side = Room.sides()[randomInt(0, 3)];
     var wall = this[side];
     if (wall.direction === Path.VERTICAL) {
-      this.doors.push(new Vector2(
-        wall.start.x,
-        randomInt(wall.start.y, wall.end.y)
-      ));
+      pos = new Vector2(wall.start.x, randomInt(wall.start.y, wall.end.y));
     } else {
-      this.doors.push(new Vector2(
-        randomInt(wall.start.x, wall.end.x),
-        wall.start.y,
-      ));
+      pos = new Vector2(randomInt(wall.start.x, wall.end.x), wall.start.y);
     }
+    this.doors.push(new Door(pos, side));
   }
 }
 
-var DungeonLayout = function(width, height, nIterations) {
-  this.width = width;
-  this.height = height;
-  this.area = this.width * this.height;
-  this.nIterations = nIterations;
-  var map = new Rectangle(0, 0, width, height);
-  this.tree = BSPTree.splitRect(map, this.nIterations);
-  this.rooms = [];
-  this._makeRooms();
+Door = function(pos, side) {
+  this.pos = pos;
+  this.side = side;
 }
 
-DungeonLayout.prototype._makeRooms = function() {
-  this.rooms = this.tree.getLeaves().map(function(leaf) {
+Room.prototype.pointIntersectsWall = function(point) {
+  for (var key in Rectangle.SIDES) {
+    var wall = this[Rectangle.SIDES[key]];
+    if (wall.containsPoint(point)) return true;
+  }
+  return false;
+}
+
+var DungeonLayout = function(x, y, w, h, nIterations, options) {
+  this.x = x;
+  this.y = y;
+  this.w = w;
+  this.h = h;
+  this.area = this.w * this.h;
+  this.nIterations = nIterations;
+  this.options = options;
+  var map = new Rectangle(x, y, this.w, this.h);
+  this.tree = BSPTree.splitRect(map, this.nIterations);
+  this.leaves = this.tree.getLeaves();
+  this.rooms = [];
+  this.makeRooms();
+}
+
+DungeonLayout.prototype.makeRooms = function() {
+  this.rooms = this.leaves.map(function(leaf) {
     return new Room(leaf.x, leaf.y, leaf.w, leaf.h, leaf.id);
   });
+}
+
+DungeonLayout.prototype.getRoomByContainerId = function(id) {
+  return this.rooms.find(function(room) {
+    return room.containerId === id;
+  });
+}
+
+DungeonLayout.prototype.pointIntersectsWall = function(point) {
+  var container = this.tree.nearestLeaf(point);
+  if (!container) return false;
+  var room = this.getRoomByContainerId(container.id);
+  if (!room) return false;
+  return room.pointIntersectsWall(point);
 }
 
 DungeonLayout.prototype.regenerate = function(width, height, nIterations) {
@@ -67,7 +103,7 @@ DungeonLayout.prototype.regenerate = function(width, height, nIterations) {
   this.nIterations = nIterations ? nIterations : this.nIterations;
   var map = new Rectangle(0, 0, width, height);
   this.tree = BSPTree.splitRect(map, this.nIterations);
-  this._makeRooms();
+  this.makeRooms();
 }
 
 module.exports = DungeonLayout;

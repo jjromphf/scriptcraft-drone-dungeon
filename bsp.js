@@ -1,6 +1,6 @@
 var geom = require('./geom');
 var randomInt = require('./utils').randomInt;
-var shortid = require('shortid');
+var uuid = require('./utils').generateUUID;
 
 var Rectangle = geom.Rectangle;
 var Vector2 = geom.Vector2;
@@ -8,7 +8,7 @@ var Path = geom.Path;
 
 var Container = function(x, y, w, h) {
   Rectangle.call(this, x, y, w, h);
-  this.id = shortid.generate();
+  this.id = uuid();
 }
 
 Container.prototype = Object.create(Rectangle.prototype);
@@ -28,14 +28,10 @@ BSPTree.SPLIT_H = 0;
 BSPTree.SPLIT_V = 1;
 
 BSPTree.prototype.getLeaves = function() {
-  if (this.leaves.length === 0) {
-    if (this.leftChild === undefined && this.rightChild === undefined) {
-      return this.leaf;
-    }
-    return this.leaves.concat(this.leftChild.getLeaves(), this.rightChild.getLeaves());
-  } else {
-    return this.leaves;
+  if (this.leftChild === undefined && this.rightChild === undefined) {
+    return this.leaf;
   }
+  return this.leaves.concat(this.leftChild.getLeaves(), this.rightChild.getLeaves());
 }
 
 // https://stackoverflow.com/questions/2597637/finding-height-in-binary-search-tree
@@ -74,7 +70,6 @@ BSPTree.prototype._nearest = function(node, point) {
   }
 }
 
-// should cache result of getLeaves
 // also don't know if there's any way to do this
 BSPTree.prototype.getLeaf = function(id) {
   return this.getLeaves().find(function(leaf) {

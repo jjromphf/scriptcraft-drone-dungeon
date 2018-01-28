@@ -8,10 +8,26 @@ Vector2.prototype.distanceTo = function(vec) {
   return Math.sqrt(this.distanceToSquared(vec));
 }
 
+Vector2.prototype.multiply = function(vec) {
+  this.x *= vec.x;
+  this.y *= vec.y;
+  return this;
+}
+
+Vector2.prototype.divide = function(vec) {
+  this.x /= vec.x;
+  this.y /= vec.y;
+  return this;
+}
+
 Vector2.prototype.distanceToSquared = function(vec) {
   var distanceX = this.x - vec.x;
   var distanceY = this.y - vec.y;
   return distanceX * distanceX + distanceY * distanceY;
+}
+
+Vector2.prototype.clone = function() {
+  return new Vector2(this.x, this.y);
 }
 
 var Path = function(start, end) {
@@ -33,6 +49,20 @@ Path.prototype.intersectsRect = function(rect) {
     rect.y < this.start.y + this.h &&
     rect.h + rect.y > this.start.y === true
   );
+}
+
+Path.prototype.containsPoint = function(point) {
+  if (this.direction === Path.VERTICAL) {
+    return(
+      point.x === this.start.x || point.x === this.end.x &&
+      point.y < this.start.y + this.h === true
+    );
+  } else {
+    return (
+      point.y === this.start.y || point.y === this.end.y &&
+      point.x < this.start.x + this.w === true
+    );
+  }
 }
 
 Path.prototype.getDirection = function() {

@@ -19,6 +19,7 @@ var DEFAULTS = {
   // n floors
 }
 
+
 function getDoorDirection(side) {
   switch(side) {
     case 'top':
@@ -57,22 +58,60 @@ function dungeon(w, h, options) {
   // must be facing east
   this.move(location.x, location.y, location.z);
   this.chkpt('dungeon-start');
-  this.box0(blockType, w, depth, h);
+  var startDir = this.dir;
   // make all the rooms
   var roomCnt = 0;
   var dl = this.dungeon.layout;
   var drone = this;
+  var getWinding = function(x, y, z, width, height) {
+    var winding = {}
+    winding.w = height;
+    winding.h = width;
+    winding.dir = 0;
+    switch(startDir) {
+      // east
+      case 0:
+        winding.x = x;
+        winding.y = y;
+        winding.z = z;
+        break;
+      // south
+      case 1:
+        winding.x = x - w;
+        winding.y = y;
+        winding.z = z;
+        break;
+      // west
+      case 2:
+        winding.x = x - w;
+        winding.y = y;
+        winding.z = z - h;
+        break;
+      // north
+      case 3:
+        winding.x = x;
+        winding.y = y;
+        winding.z = z - h;
+        break;
+    }
+    return winding;
+  }
   var next = function() {
     var room = dl.rooms[roomCnt];
-    drone.move('dungeon-start');
-    console.log(drone.dir);
-    drone.move(room.x, location.y, room.y);
-    drone.box0(blockType, room.w, depth, room.h);
+    var winding = getWinding(room.x, location.y, room.y, room.w, room.h);
+    drone.move(winding.x, winding.y, winding.z, winding.dir);
+    drone.box0(blockType, winding.w, depth, winding.h);
+
     // TODO add doors
     for (var i = 0; i < room.doors.length; i++) {
       var door = room.doors[i];
-      drone.move('dungeon-start');
-      drone.move(door.pos.x, location.y, door.pos.y, getDoorDirection(door.side));
+      var dw = getWinding(door.pos.x, location.y, door.pos.y, room.w, room.h);
+      console.log('winding x')
+      console.log(winding.x);
+      console.log('door x');
+      console.log(dw.x);
+
+      drone.move(door.pos.x - room.h, location.y, door.pos.y - room.w, getDoorDirection(door.side));
       // debugging
       switch(door.side) {
         case 'top':
@@ -99,7 +138,14 @@ function dungeon(w, h, options) {
     return false;
   }
   var onDone = function() {
-    this.move('dungeon-start');
+    drone.move('dungeon-start');
+    drone.box0(blockType, w+1, depth, h+1);
+
+    /*var location = drone.getLocation();
+    drone.move(location.x - w, location.y, location.z, 3)
+
+    drone.door();*/
+    /*this.move('dungeon-start');
     // make the floor
     this.up(depth);
     //this.box(blockType, w, 1, h);
@@ -107,7 +153,7 @@ function dungeon(w, h, options) {
     .up()
     .door();
     this.move('dungeon-start');
-    echo('Dungeon done');
+    echo('Dungeon done');*/
   }
   utils.nicely(next, hasNext, onDone, 50);
   // move back to the start (local 0,0 in our layout)

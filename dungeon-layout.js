@@ -33,19 +33,29 @@ Room.sides = function() {
   return sides;
 }
 
+Room.prototype.randomPerimeterPoint = function() {
+  var side = Room.sides()[randomInt(0, 3)];
+  var wall = this[side];
+  var pos;
+  if (wall.direction === Path.VERTICAL) {
+    var startX = (side === 'left') ? wall.start.x : wall.start.x - 1;
+    pos = new Vector2(startX, randomInt(wall.start.y + 2, wall.end.y - 2));
+  } else {
+    var startY = (side === 'top') ? wall.start.y : wall.start.y - 1;
+    pos = new Vector2(randomInt(wall.start.x + 2, wall.end.x - 2), startY);
+  }
+  return pos;
+}
+
 // could put in a minimum door distance if they fall too close together
 Room.prototype.makeDoors = function(nDoors) {
   var pos;
+  var nSides = (nDoors > 4) ? 4 : nDoors;
+  var sides = Room.sides().slice(0, nSides);
   for (i = 0; i < nDoors; i++) {
-    var side;
-    var side = Room.sides()[randomInt(0, 3)];
+    var side = sides[i];
     var wall = this[side];
-    if (wall.direction === Path.VERTICAL) {
-      pos = new Vector2(wall.start.x, randomInt(wall.start.y, wall.end.y));
-    } else {
-      pos = new Vector2(randomInt(wall.start.x, wall.end.x), wall.start.y);
-    }
-    this.doors.push(new Door(pos, side));
+    this.doors.push(new Door(wall.center, side));
   }
 }
 

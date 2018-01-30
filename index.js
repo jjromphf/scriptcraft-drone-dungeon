@@ -9,6 +9,13 @@ var DungeonLayout = require('./dungeon-layout');
 var Vector2 = require('./geom').Vector2;
 var Rectangle = require('./geom').Rectangle;
 
+var sideDir = {
+    top: 1,
+    bottom: 3,
+    left: 2,
+    right: 0
+}
+
 var DEFAULTS = {
   iterations: 4,
   blockType: blocks.stone,
@@ -17,27 +24,6 @@ var DEFAULTS = {
   // block type
   // depth
   // n floors
-}
-
-
-function getDoorDirection(side) {
-  switch(side) {
-    case 'top':
-      return 3;
-
-    case 'bottom':
-      return 2;
-
-    case 'left':
-      return 0;
-
-    case 'right':
-      return 1;
-
-    default:
-      return 0;
-
-  }
 }
 
 function dungeon(w, h, options) {
@@ -63,55 +49,51 @@ function dungeon(w, h, options) {
   var roomCnt = 0;
   var dl = this.dungeon.layout;
   var drone = this;
-  var getWinding = function(x, y, z, width, height) {
-    var winding = {}
-    winding.w = height;
-    winding.h = width;
-    winding.dir = 0;
+  var getTransform = function(x, y, z, width, height) {
+    var transform = {}
+    transform.w = height;
+    transform.h = width;
+    transform.dir = 0;
     switch(startDir) {
       // east
       case 0:
-        winding.x = x;
-        winding.y = y;
-        winding.z = z;
+        transform.x = x;
+        transform.y = y;
+        transform.z = z;
         break;
       // south
       case 1:
-        winding.x = x - w;
-        winding.y = y;
-        winding.z = z;
+        transform.x = x - w;
+        transform.y = y;
+        transform.z = z;
         break;
       // west
       case 2:
-        winding.x = x - w;
-        winding.y = y;
-        winding.z = z - h;
+        transform.x = x - w;
+        transform.y = y;
+        transform.z = z - h;
         break;
       // north
       case 3:
-        winding.x = x;
-        winding.y = y;
-        winding.z = z - h;
+        transform.x = x;
+        transform.y = y;
+        transform.z = z - h;
         break;
     }
-    return winding;
+    return transform;
   }
   var next = function() {
     var room = dl.rooms[roomCnt];
-    var winding = getWinding(room.x, location.y, room.y, room.w, room.h);
-    drone.move(winding.x, winding.y, winding.z, winding.dir);
-    drone.box0(blockType, winding.w, depth, winding.h);
+    var transform = getTransform(room.x, location.y, room.y, room.w, room.h);
+    drone.move(transform.x, transform.y, transform.z, transform.dir);
+    drone.box0(blockType, transform.w, depth, transform.h);
 
     // TODO add doors
     for (var i = 0; i < room.doors.length; i++) {
       var door = room.doors[i];
-      var dw = getWinding(door.pos.x, location.y, door.pos.y, room.w, room.h);
-      console.log('winding x')
-      console.log(winding.x);
-      console.log('door x');
-      console.log(dw.x);
+      var dt = getTransform(door.pos.x, location.y, door.pos.y, room.w, room.h);
 
-      drone.move(door.pos.x - room.h, location.y, door.pos.y - room.w, getDoorDirection(door.side));
+      drone.move(dt.x, location.y, dt.z, sideDir[door.side]);
       // debugging
       switch(door.side) {
         case 'top':
@@ -119,11 +101,11 @@ function dungeon(w, h, options) {
           break;
 
         case 'bottom':
-          drone.door2();
+          drone.door_iron();
           break;
 
         case 'left':
-          drone.door_iron();
+          drone.door2();
           break;
 
         case 'right':

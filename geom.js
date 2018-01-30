@@ -8,6 +8,12 @@ Vector2.prototype.distanceTo = function(vec) {
   return Math.sqrt(this.distanceToSquared(vec));
 }
 
+Vector2.prototype.add = function(vec) {
+  this.x += vec.x;
+  this.y += vec.y
+  return this;
+}
+
 Vector2.prototype.multiply = function(vec) {
   this.x *= vec.x;
   this.y *= vec.y;
@@ -17,6 +23,12 @@ Vector2.prototype.multiply = function(vec) {
 Vector2.prototype.divide = function(vec) {
   this.x /= vec.x;
   this.y /= vec.y;
+  return this;
+}
+
+Vector2.prototype.divideScalar = function(num) {
+  this.x /= num;
+  this.y /= num;
   return this;
 }
 
@@ -37,6 +49,7 @@ var Path = function(start, end) {
   this.h = this.end.y - this.start.y;
   this.direction = this.getDirection();
   this.distance = this.start.distanceTo(this.end);
+  this.center = this.getCenter();
 }
 
 Path.VERTICAL = 'VERTICAL';
@@ -69,6 +82,13 @@ Path.prototype.getDirection = function() {
   if (this.w > this.h) return Path.HORIZONTAL;
   return Path.VERTICAL;
 }
+
+Path.prototype.getCenter = function() {
+    var start = this.start.clone();
+    var end = this.end.clone();
+    return start.add(end).divideScalar(2);
+}
+
 
 // jsdoc here
 var Rectangle = function(x, y, w, h) {

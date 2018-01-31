@@ -19,7 +19,7 @@ var Room = function(x, y, w, h, containerId) {
   this.containerId = containerId;
   Rectangle.call(this, this.x, this.y, this.w, this.h);
   this.doors = [];
-  this.makeDoors(1);
+  this.makeDoors(3);
   return this;
 }
 
@@ -38,24 +38,32 @@ Room.prototype.randomPerimeterPoint = function() {
   var wall = this[side];
   var pos;
   if (wall.direction === Path.VERTICAL) {
-    var startX = (side === 'left') ? wall.start.x : wall.start.x - 1;
-    pos = new Vector2(startX, randomInt(wall.start.y + 2, wall.end.y - 2));
+    var startX = (side === 'left') ? wall.start.x : wall.start.x;
+    pos = new Vector2(startX, randomInt(wall.start.y, wall.end.y));
   } else {
-    var startY = (side === 'top') ? wall.start.y : wall.start.y - 1;
-    pos = new Vector2(randomInt(wall.start.x + 2, wall.end.x - 2), startY);
+    var startY = (side === 'top') ? wall.start.y : wall.start.y;
+    pos = new Vector2(randomInt(wall.start.x, wall.end.x), startY);
   }
   return pos;
 }
 
 // could put in a minimum door distance if they fall too close together
 Room.prototype.makeDoors = function(nDoors) {
-  var pos;
-  var nSides = (nDoors > 4) ? 4 : nDoors;
-  var sides = Room.sides().slice(0, nSides);
-  for (i = 0; i < nDoors; i++) {
+  var doors = (nDoors <= 4) ? nDoors : 4;
+  var sides = Room.sides();
+  for (i = 0; i < 3; i++) {
     var side = sides[i];
     var wall = this[side];
-    this.doors.push(new Door(wall.center, side));
+    var center;
+    if (wall.direction === Path.VERTICAL) {
+      center = (side === 'left') ? wall.center :
+        wall.center.clone().subtract(new Vector2(1, 0));
+    } else {
+      center = (side === 'top') ? wall.center :
+        wall.center.clone().subtract(new Vector2(0,1));
+    }
+
+    this.doors.push(new Door(center, side));
   }
 }
 
@@ -80,8 +88,8 @@ var DungeonLayout = function(x, y, w, h, nIterations, options) {
   this.area = this.w * this.h;
   this.nIterations = nIterations;
   this.options = options;
-  var map = new Rectangle(x, y, this.w, this.h);
-  this.tree = BSPTree.splitRect(map, this.nIterations);
+  this.map = new Rectangle(x, y, w, h);
+  this.tree = BSPTree.splitRect(this.map, this.nIterations);
   this.leaves = this.tree.getLeaves();
   this.rooms = [];
   this.makeRooms();

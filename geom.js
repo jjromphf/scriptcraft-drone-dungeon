@@ -14,6 +14,12 @@ Vector2.prototype.add = function(vec) {
   return this;
 }
 
+Vector2.prototype.subtract = function(vec) {
+  this.x -= vec.x;
+  this.y -= vec.y;
+  return this;
+}
+
 Vector2.prototype.multiply = function(vec) {
   this.x *= vec.x;
   this.y *= vec.y;

@@ -8,6 +8,7 @@ var blocks = require('blocks');
 var DungeonLayout = require('./dungeon-layout');
 var Vector2 = require('./geom').Vector2;
 var Rectangle = require('./geom').Rectangle;
+var randomInt = require('./utils').randomInt;
 
 var sideDir = {
     top: 1,
@@ -16,14 +17,27 @@ var sideDir = {
     right: 0
 }
 
-var DEFAULTS = {
-  iterations: 4,
-  blockType: blocks.stone,
-  depth: 5,
-  // door type
-  // block type
-  // depth
-  // n floors
+var LIGHTMODES = {
+  dark: 0,
+  dim: 1,
+  medium: 2,
+  bright: 3
+}
+
+function nTorches(lightMode, area) {
+  switch(lightMode) {
+    case LIGHTMODES.dark:
+      return 0;
+
+    case LIGHTMODES.dim:
+      return area * 0.0625;
+
+    case LIGHTMODES.medium:
+      return area * 0.1250;
+
+    case LIGHTMODES.bright:
+      return area * 0.25;
+  }
 }
 
 function dungeon(w, h, options) {
@@ -36,9 +50,39 @@ function dungeon(w, h, options) {
   use utils.nicely() to process each room
   */
 
+
+  var DOORTYPES = {
+    door: this.door,
+    door2: this.door2,
+    iron: this.door_iron,
+    door2_iron: this.door2_iron,
+    random: function() {
+      var doorTypes = [];
+      for (var key in DOORTYPES) {
+        if (key !== 'random') doorTypes.push(DOORTYPES[key]);
+      }
+      return doorTypes[randomInt(0, doorTypes.length)];
+    }
+  }
+
+  var DEFAULTS = {
+    iterations: 4,
+    blockType: blocks.stone,
+    depth: 5,
+    lightMode: LIGHTMODES.medium,
+    doorType: DOORTYPES.random,
+    // door type
+    // block type
+    // depth
+    // n floors
+  }
+
+
   var iterations = options.iterations ? options.iterations : DEFAULTS.iterations;
   var blockType = options.blockType ? options.blockType : DEFAULTS.blockType;
   var depth = options.depth ? options.depth : DEFAULTS.depth;
+  var doorType = options.doorType ? options.doorType : DEFAULTS.doorType;
+  var lightMode = options.lightMode ? options.lightMode : DEFAULTS.lightMode;
   var location = this.getLocation();
   this.dungeon.layout = new DungeonLayout(location.x, location.z, w, h, iterations);
   // must be facing east
@@ -87,31 +131,23 @@ function dungeon(w, h, options) {
     var transform = getTransform(room.x, location.y, room.y, room.w, room.h);
     drone.move(transform.x, transform.y, transform.z, transform.dir);
     drone.box0(blockType, transform.w, depth, transform.h);
-
-    // TODO add doors
     for (var i = 0; i < room.doors.length; i++) {
       var door = room.doors[i];
       var dt = getTransform(door.pos.x, location.y, door.pos.y, room.w, room.h);
-
+      // add a torch beside the door
       drone.move(dt.x, location.y, dt.z, sideDir[door.side]);
-      // debugging
-      switch(door.side) {
-        case 'top':
-          drone.door();
-          break;
-
-        case 'bottom':
-          drone.door_iron();
-          break;
-
-        case 'left':
-          drone.door2();
-          break;
-
-        case 'right':
-          drone.door2_iron();
-          break;
-      }
+      doorType();
+      //if (lightMode > 0) drone.hangtorch()
+    }
+    if (lightMode > 1) {
+      drone.move(transform.x, transform.y, transform.z+2, transform.dir);
+      drone.hangtorch();
+      drone.move(transform.x + w, transform.y, transform.z+2, transform.dir);
+      drone.hangtorch();
+      drone.move(transform.x + w, transform.y + h, transform.z+2, transform.dir);
+      drone.hangtorch();
+      drone.move(transform.x, transform.y + h, transform.z+2, transform.dir);
+      drone.hangtorch();
     }
     roomCnt += 1;
   }
@@ -122,20 +158,15 @@ function dungeon(w, h, options) {
   var onDone = function() {
     drone.move('dungeon-start');
     drone.box0(blockType, w+1, depth, h+1);
-
-    /*var location = drone.getLocation();
-    drone.move(location.x - w, location.y, location.z, 3)
-
-    drone.door();*/
-    /*this.move('dungeon-start');
-    // make the floor
-    this.up(depth);
-    //this.box(blockType, w, 1, h);
-    this.move('dungeon-start')
-    .up()
+    var location = drone.getLocation();
+    drone.move(location.x, location.y - 1, location.z);
+    drone.box(blockType, w, 1, h);
+    drone.move(location.x, location.y+depth, location.z);
+    drone.box(blockType, w, 1, h);
+    drone.move(location.x + 5, location.y, location.z)
     .door();
     this.move('dungeon-start');
-    echo('Dungeon done');*/
+    echo('Dungeon done');
   }
   utils.nicely(next, hasNext, onDone, 50);
   // move back to the start (local 0,0 in our layout)

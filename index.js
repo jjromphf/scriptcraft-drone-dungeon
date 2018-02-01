@@ -24,22 +24,6 @@ var LIGHTMODES = {
   bright: 3
 }
 
-function nTorches(lightMode, area) {
-  switch(lightMode) {
-    case LIGHTMODES.dark:
-      return 0;
-
-    case LIGHTMODES.dim:
-      return area * 0.0625;
-
-    case LIGHTMODES.medium:
-      return area * 0.1250;
-
-    case LIGHTMODES.bright:
-      return area * 0.25;
-  }
-}
-
 function dungeon(w, h, options) {
   /*
   algorithm works like this:
@@ -50,18 +34,19 @@ function dungeon(w, h, options) {
   use utils.nicely() to process each room
   */
 
-
+  var drone = this;
+  // TODO this dont work
   var DOORTYPES = {
-    door: this.door,
-    door2: this.door2,
-    iron: this.door_iron,
-    door2_iron: this.door2_iron,
+    door: function() { drone.door() },
+    door2: function() { drone.door2() },
+    iron: function() { drone.door_iron() },
+    door2_iron: function() { drone.door2_iron() },
     random: function() {
       var doorTypes = [];
       for (var key in DOORTYPES) {
         if (key !== 'random') doorTypes.push(DOORTYPES[key]);
       }
-      return doorTypes[randomInt(0, doorTypes.length)];
+      doorTypes[randomInt(0, doorTypes.length-1)]();
     }
   }
 
@@ -69,7 +54,7 @@ function dungeon(w, h, options) {
     iterations: 4,
     blockType: blocks.stone,
     depth: 5,
-    lightMode: LIGHTMODES.medium,
+    lightMode: LIGHTMODES.bright,
     doorType: DOORTYPES.random,
     // door type
     // block type
@@ -92,7 +77,6 @@ function dungeon(w, h, options) {
   // make all the rooms
   var roomCnt = 0;
   var dl = this.dungeon.layout;
-  var drone = this;
   var getTransform = function(x, y, z, width, height) {
     var transform = {}
     transform.w = height;
@@ -137,19 +121,20 @@ function dungeon(w, h, options) {
       // add a torch beside the door
       drone.move(dt.x, location.y, dt.z, sideDir[door.side]);
       doorType();
-      //if (lightMode > 0) drone.hangtorch()
+      if (lightMode > 0) {
+        drone.left(2)
+        .up()
+        .turn(2)
+        .back()
+        .hangtorch();
+      }
+      if (lightMode === 2) {
+        drone.right(4)
+        .fwd()
+        .hangtorch();
+      }
+      roomCnt += 1;
     }
-    if (lightMode > 1) {
-      drone.move(transform.x, transform.y, transform.z+2, transform.dir);
-      drone.hangtorch();
-      drone.move(transform.x + w, transform.y, transform.z+2, transform.dir);
-      drone.hangtorch();
-      drone.move(transform.x + w, transform.y + h, transform.z+2, transform.dir);
-      drone.hangtorch();
-      drone.move(transform.x, transform.y + h, transform.z+2, transform.dir);
-      drone.hangtorch();
-    }
-    roomCnt += 1;
   }
   var hasNext = function() {
     if (roomCnt < dl.rooms.length) return true;
@@ -157,15 +142,28 @@ function dungeon(w, h, options) {
   }
   var onDone = function() {
     drone.move('dungeon-start');
-    drone.box0(blockType, w+1, depth, h+1);
+    drone.back()
+    .box0(blockType, w+2, depth, h+2);
     var location = drone.getLocation();
     drone.move(location.x, location.y - 1, location.z);
-    drone.box(blockType, w, 1, h);
+    drone.box(blockType, w+2, 1, h+2);
     drone.move(location.x, location.y+depth, location.z);
-    drone.box(blockType, w, 1, h);
-    drone.move(location.x + 5, location.y, location.z)
+    drone.box(blockType, w+2, 1, h+2);
+    drone.move('dungeon-start')
+    .back()
+    .right(10)
     .door();
-    this.move('dungeon-start');
+    if (lightMode === 3) {
+      drone.move(location.x, location.y, location.z+2, location.dir)
+      .hangtorch()
+      .move(location.x + w, location.y, location.z+2, location.dir)
+      .hangtorch()
+      .move(location.x + w, location.y + h, location.z+2, location.dir)
+      .hangtorch()
+      .move(location.x, location.y + h, location.z+2, location.dir)
+      .hangtorch();
+    }
+    drone.move('dungeon-start');
     echo('Dungeon done');
   }
   utils.nicely(next, hasNext, onDone, 50);

@@ -54,7 +54,7 @@ function dungeon(w, h, options) {
     iterations: 4,
     blockType: blocks.stone,
     depth: 5,
-    lightMode: LIGHTMODES.bright,
+    lightMode: LIGHTMODES.medium,
     doorType: DOORTYPES.random,
     // door type
     // block type
@@ -128,11 +128,6 @@ function dungeon(w, h, options) {
         .back()
         .hangtorch();
       }
-      if (lightMode === 2) {
-        drone.right(4)
-        .fwd()
-        .hangtorch();
-      }
       roomCnt += 1;
     }
   }
@@ -146,26 +141,44 @@ function dungeon(w, h, options) {
     .box0(blockType, w+2, depth, h+2);
     var location = drone.getLocation();
     drone.move(location.x, location.y - 1, location.z);
-    drone.box(blockType, w+2, 1, h+2);
-    drone.move(location.x, location.y+depth, location.z);
-    drone.box(blockType, w+2, 1, h+2);
+    drone.box(blockType, w+2, 1, h+2)
+    drone.move(location.x, location.y+depth, location.z)
+    .fwd()
+    .right()
+    .chkpt('dungeon-ceiling');
+    placeHiddenLights(lightMode);
     drone.move('dungeon-start')
     .back()
     .right(10)
     .door();
-    if (lightMode === 3) {
-      drone.move(location.x, location.y, location.z+2, location.dir)
-      .hangtorch()
-      .move(location.x + w, location.y, location.z+2, location.dir)
-      .hangtorch()
-      .move(location.x + w, location.y + h, location.z+2, location.dir)
-      .hangtorch()
-      .move(location.x, location.y + h, location.z+2, location.dir)
-      .hangtorch();
-    }
+
     drone.move('dungeon-start');
     echo('Dungeon done');
   }
+
+  var placeHiddenLights = function(lightMode) {
+    drone.move('dungeon-ceiling')
+    .down()
+    .box(blocks.carpet.lightgray, w, 1, h);
+    if (lightMode === 2) {
+      drone.move('dungeon-ceiling')
+      .box0(blocks.glowstone, w, 1, h);
+    }
+    if (lightMode === 3) {
+      drone.move('dungeon-ceiling')
+      .box(blocks.glowstone, w, 1, h);
+    }
+    drone.move('dungeon-ceiling')
+    .back()
+    .left()
+    .box0(blockType, w+2, 1, h+2)
+    .move('dungeon-ceiling')
+    .back()
+    .left()
+    .up()
+    .box(blockType, w+2, 1, h+2);
+  }
+
   utils.nicely(next, hasNext, onDone, 50);
   // move back to the start (local 0,0 in our layout)
 }
